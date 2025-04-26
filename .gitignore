@@ -1,0 +1,21 @@
+# Virtual environment
+venv/
+
+# Python compiled files
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Data directories
+data/
+chroma_db/
+documents/
+
+# Logs
+*.log
+
+# IDE files
+.idea/
+*.vscode/
