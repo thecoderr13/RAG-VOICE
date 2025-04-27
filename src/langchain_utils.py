@@ -12,14 +12,16 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GOOGLE_API_KEY:
+    raise ValueError("GEMINI_API_KEY not found in environment variables.")
 
-retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+retriever = vectorstore.as_retriever(search_kwargs={"k": int(os.getenv("RETRIEVER_K"))})
 
 output_parser = StrOutputParser()
 
 # Setting up prompts
-contextualize_q_system_prompt = (
-    "Given a chat history and the latest user question "
+contextualize_q_system_prompt = os.getenv("CONTEXTUALIZE_Q_PROMPT", 
+    "Given a chat history and the latest user question " 
     "which might reference context in the chat history, "
     "formulate a standalone question which can be understood "
     "without the chat history. Do NOT answer the question, "
@@ -39,12 +41,11 @@ qa_prompt = ChatPromptTemplate.from_messages([
     ("human", "{input}")
 ])
 
-# Creating the RAG chain with Gemini-1.5-Flash
 def get_rag_chain(model="gemini-1.5-flash"):
     llm = ChatGoogleGenerativeAI(
         model=model,
         google_api_key=GOOGLE_API_KEY,
-        temperature=0.7,  # Adjust as needed
+        temperature=float(os.getenv("LLM_TEMPERATURE")),
     )
     history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)

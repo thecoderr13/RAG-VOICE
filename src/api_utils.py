@@ -1,5 +1,10 @@
+from dotenv import load_dotenv
+import os
 import requests
 import streamlit as st
+
+load_dotenv()
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 def get_api_response(question, session_id, model="gemini-1.5-flash"):
     headers = {'accept': 'application/json', 'Content-Type': 'application/json'}
@@ -8,7 +13,7 @@ def get_api_response(question, session_id, model="gemini-1.5-flash"):
         data["session_id"] = session_id
 
     try:
-        response = requests.post("http://localhost:8000/chat", headers=headers, json=data)
+        response = requests.post(f"{API_URL}/chat", headers=headers, json=data)
         if response.status_code == 200:
             return response.json()
         else:
@@ -21,7 +26,7 @@ def get_api_response(question, session_id, model="gemini-1.5-flash"):
 def upload_document(file):
     try:
         files = {"file": (file.name, file, file.type)}
-        response = requests.post("http://localhost:8000/upload-doc", files=files)
+        response = requests.post(f"{API_URL}/upload-doc", files=files)
         if response.status_code == 200:
             return response.json()
         else:
@@ -33,7 +38,7 @@ def upload_document(file):
 
 def list_documents():
     try:
-        response = requests.get("http://localhost:8000/list-docs")
+        response = requests.get(f"{API_URL}/list-docs")
         if response.status_code == 200:
             return response.json()
         else:
@@ -48,7 +53,7 @@ def delete_document(file_id):
     data = {"file_id": file_id}
 
     try:
-        response = requests.post("http://localhost:8000/delete-doc", headers=headers, json=data)
+        response = requests.post(f"{API_URL}/delete-doc", headers=headers, json=data)
         if response.status_code == 200:
             return response.json()
         else:

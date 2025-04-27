@@ -1,51 +1,40 @@
 from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure
 from datetime import datetime
+from dotenv import load_dotenv
+import os
+import logging
+from bson.objectid import ObjectId
+# Load environment variables
+load_dotenv()
+DB_URI = os.getenv("DB_URI")
+DB_NAME = os.getenv("DB_NAME")
 
-
-# MongoDB Connection Details
-DB_URI = "mongodb+srv://vidhi:0fk1MdT1xxgVe9DY@cluster-rag.bsgynsv.mongodb.net/?retryWrites=true&w=majority&appName=Cluster-rag"  # Update this if connecting to a remote MongoDB
-DB_NAME = "vidhi"  # No file extension needed
+# Set up logging to app.log in the project root
+logging.basicConfig(filename=os.path.join(os.path.dirname(__file__), "..", "..", "app.log"), 
+                    level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_db_connection():
     """Establishes a connection to MongoDB and returns the database object."""
-    client = MongoClient(DB_URI)  # Connect to MongoDB
-    db = client[DB_NAME]  # Get the database
-    return db  # Return the database instance
+    try:
+        client = MongoClient(DB_URI)
+        client.admin.command('ping')  # Test the connection
+        return client[DB_NAME]
+    except ConnectionFailure as e:
+        logging.error(f"Failed to connect to MongoDB: {str(e)}")
+        raise
 
-
-
-def get_db_connection():
-    """Establishes a connection to MongoDB and returns the database object."""
-    client = MongoClient(DB_URI)
-    db = client[DB_NAME]
-    return db
-
-def create_application_logs():
-    """Ensures indexes exist for the application_logs collection in MongoDB."""
+def initialize_database():
+    """Ensures indexes exist for necessary collections in MongoDB."""
     db = get_db_connection()
-    collection = db.application_logs
-
-    # Creating an index on session_id for faster lookups
-    collection.create_index("session_id")
-
-    print("Indexes created for application_logs collection.")
-
-def create_document_store():
-    """Ensures indexes exist for the document_store collection in MongoDB."""
-    db = get_db_connection()
-    collection = db.document_store
-
-    # Creating an index on filename to ensure unique file tracking
-    collection.create_index("filename", unique=True)
-
-    print("Indexes created for document_store collection.")
-
-
-def get_db_connection():
-    """Establishes a connection to MongoDB and returns the database object."""
-    client = MongoClient(DB_URI)
-    db = client[DB_NAME]
-    return db
+    # Ensure application_logs indexes
+    db.application_logs.create_index("session_id")  # Index for faster lookups by session_id
+    logging.info("Indexes created for application_logs collection.")
+    # Ensure document_store indexes
+    db.document_store.create_index("filename", unique=True)  # Ensure filenames are unique
+    logging.info("Indexes created for document_store collection.")
+    logging.info("Database initialization complete.")
 
 def insert_application_logs(session_id, user_query, gpt_response, model):
     """Inserts a log entry into the application_logs collection in MongoDB."""
@@ -57,28 +46,19 @@ def insert_application_logs(session_id, user_query, gpt_response, model):
         "model": model,
         "created_at": datetime.utcnow()  # MongoDB doesn't auto-set timestamps like SQL
     })
-    print("Log inserted successfully.")
+    logging.info("Log inserted successfully.")
 
 def get_chat_history(session_id):
     """Retrieves chat history for a session from MongoDB."""
     db = get_db_connection()
     logs = db.application_logs.find({"session_id": session_id}).sort("created_at", 1)  # Sort by timestamp ASC
-
     messages = []
     for log in logs:
         messages.extend([
             {"role": "human", "content": log["user_query"]},
             {"role": "ai", "content": log["gpt_response"]}
         ])
-    
     return messages
-
-
-def get_db_connection():
-    """Establishes a connection to MongoDB and returns the database object."""
-    client = MongoClient(DB_URI)
-    db = client[DB_NAME]
-    return db
 
 def insert_document_record(filename):
     """Inserts a document record into the document_store collection."""
@@ -93,27 +73,18 @@ def insert_document_record(filename):
 def delete_document_record(file_id):
     """Deletes a document record from the document_store collection."""
     db = get_db_connection()
-    result = db.document_store.delete_one({"_id": file_id})  # Delete document by its unique ID
-    return result.deleted_count > 0  # Return True if a document was deleted
-
+    try:
+        obj_id = ObjectId(file_id)  # Convert the string file_id to ObjectId
+    except Exception as e:
+        logging.error(f"Invalid file_id: {file_id}, error: {str(e)}")
+        return False  # Return False if conversion fails (e.g., invalid ObjectId string)
+    result = db.document_store.delete_one({"_id": obj_id})
+    logging.info(f"Delete result for file_id {file_id}: deleted_count={result.deleted_count}")
+    return result.deleted_count > 0  # Return True only if a document was actually deleted
+    
 def get_all_documents():
     """Retrieves all document records from document_store, sorted by upload_timestamp."""
     db = get_db_connection()
     documents = db.document_store.find().sort("upload_timestamp", -1)  # Sort by latest uploads first
-
     return [{"id": str(doc["_id"]), "filename": doc["filename"], "upload_timestamp": doc["upload_timestamp"]}
             for doc in documents]
-
-
-def initialize_database():
-    """Ensures indexes exist for necessary collections in MongoDB."""
-    db = get_db_connection()
-
-    # Ensure application_logs indexes
-    db.application_logs.create_index("session_id")  # Index for faster lookups by session_id
-
-    # Ensure document_store indexes
-    db.document_store.create_index("filename", unique=True)  # Ensure filenames are unique
-
-    print("Database initialization complete: Indexes created.")
-

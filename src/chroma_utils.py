@@ -15,7 +15,7 @@ embedding_function = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # Get the absolute path to the project root (RAG VOICE) and set persist_directory
 # Since this file is in src/, go up two levels to RAG VOICE, then into data/chroma_db
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 persist_dir = os.path.join(project_root, "data", "chroma_db")
 logging.info(f"Setting persist directory to: {persist_dir}")
 
