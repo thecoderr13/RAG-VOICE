@@ -102,16 +102,15 @@ Running the Application
 
 Start the FastAPI Backend:Launch the backend server in one terminal:
 ``` bash
-uvicorn main:app --reload
+uvicorn src.main:app --reload
 ```
 
 Start the Streamlit Frontend:In a separate terminal, activate the virtual environment again (if needed) and run:
 ```bash
-streamlit run streamlit_app.py
+streamlit run src/streamlit_app.py
 ```
 
-Access the Application:Open your web browser and go to:
-http://localhost:8501
+![Flowchart](Images/RAG.png)
 
 
 
