@@ -153,7 +153,6 @@ python-magic==0.4.27
 python-multipart==0.0.20
 python-oxmsg==0.0.2
 pytz==2025.2
-pywin32==310
 PyYAML==6.0.2
 pyzmq==26.4.0
 RapidFuzz==3.13.0
